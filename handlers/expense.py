@@ -4,6 +4,9 @@ from aiogram.dispatcher.filters import Text
 from aiogram import types, Dispatcher
 
 from buttons import *
+from db import Database
+
+db = Database('database.db')
 
 
 class ExpenseForm(StatesGroup):
@@ -20,9 +23,14 @@ async def add_expense(msg: types.Message):
 async def process_expense_amount(msg: types.Message, state: FSMContext):
     # TODO: ПРОВЕРКА НА ЧИСЛО
     text = msg.text
-    await state.update_data(amount=text)
-    await msg.answer('Теперь внесите причину расхода')
-    await ExpenseForm.reason.set()
+    if text.isdigit():
+        await state.update_data(amount=text)
+        await msg.answer('Теперь внесите причину расхода')
+        await ExpenseForm.reason.set()
+    else:
+        await msg.reply('Вы ввели некорректное число')
+        await state.reset_data()
+        await state.finish()
 
 
 async def process_expense_reason(msg: types.Message, state: FSMContext):
@@ -36,7 +44,14 @@ async def process_expense_confirm_btn(callback_query: types.CallbackQuery, state
     code = callback_query.data
     if code == 'btn_confirm':
         data = await state.get_data()
-        await callback_query.answer(str(data))
+
+        user_id = callback_query.from_user.id
+        is_income = False
+        amount = data['amount']
+        reason = data['reason']
+        db.add_operation(user_id, is_income, amount, reason)
+
+        await callback_query.answer('Успешно внесено!')
         await callback_query.message.delete_reply_markup()
         await state.finish()
 
