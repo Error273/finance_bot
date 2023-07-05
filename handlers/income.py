@@ -4,9 +4,7 @@ from aiogram.dispatcher.filters import Text
 from aiogram import types, Dispatcher
 
 from buttons import *
-from db import Database
-
-db = Database('database.db')
+from db import *
 
 
 class IncomeForm(StatesGroup):
@@ -21,16 +19,24 @@ async def add_income(msg: types.Message):
 
 
 async def process_income_amount(msg: types.Message, state: FSMContext):
-    # TODO: ПРОВЕРКА НА ЧИСЛО
     text = msg.text
     if text.isdigit():
         await state.update_data(amount=text)
-        await msg.answer('Теперь внесите причину дохода')
+        await msg.answer('Теперь внесите причину дохода или выберете уже из созданных',
+                         reply_markup=get_categories_kb(get_db().get_categories(msg.from_user.id, 1)))
         await IncomeForm.reason.set()
     else:
         await msg.answer('Вы ввели некорректое число')
         await state.reset_data()
         await state.finish()
+
+
+async def process_income_category_selection_btn(callback_query: types.CallbackQuery, state: FSMContext):
+    code = callback_query.data
+    category = code[13:]
+    await state.update_data(reason=category)
+    await callback_query.message.answer('Подтвердить внесение?', reply_markup=confirm_kb)
+    await IncomeForm.confirm.set()
 
 
 async def process_income_reason(msg: types.Message, state: FSMContext):
@@ -48,8 +54,8 @@ async def process_income_confirm_btn(callback_query: types.CallbackQuery, state:
         user_id = callback_query.from_user.id
         is_income = True
         amount = data['amount']
-        reason = data['reason']
-        db.add_operation(user_id, is_income, amount, reason)
+        reason = data['reason'].capitalize()
+        get_db().add_operation(user_id, is_income, amount, reason)
 
         await callback_query.answer('Успешно внесено!')
         await callback_query.message.delete_reply_markup()
@@ -66,4 +72,6 @@ def register_income_handlers(dp: Dispatcher):
     dp.register_message_handler(add_income, Text('Добавить доход'))
     dp.register_message_handler(process_income_amount, state=IncomeForm.amount)
     dp.register_message_handler(process_income_reason, state=IncomeForm.reason)
+    dp.register_callback_query_handler(process_income_category_selection_btn,
+                                       lambda c: c.data and c.data.startswith('btn_category_'), state=IncomeForm.reason)
     dp.register_callback_query_handler(process_income_confirm_btn, state=IncomeForm.confirm)

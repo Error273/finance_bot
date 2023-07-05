@@ -10,3 +10,12 @@ choose_statistics_period_kb = InlineKeyboardMarkup().add(
 
 confirm_kb = InlineKeyboardMarkup().add(InlineKeyboardButton('Отмена', callback_data='btn_cancel')).add(
     InlineKeyboardButton('Да', callback_data='btn_confirm'))
+
+
+def get_categories_kb(categories):
+    print(categories)
+    kb = InlineKeyboardMarkup()
+    for i in categories:
+        category = i[0]
+        kb.add(InlineKeyboardButton(category, callback_data=f'btn_category_{category}'))
+    return kb

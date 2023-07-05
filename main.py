@@ -8,11 +8,16 @@ from buttons import *
 
 from handlers import expense, income
 
+from db import *
+from excel import create_excel_file
+
 from config import *
 
 bot = Bot(token=token)
 storage = MemoryStorage()
 dp = Dispatcher(bot, storage=storage)
+
+init_db('database.db')
 
 
 async def statistics(msg: types.Message):
@@ -23,11 +28,19 @@ async def statistics(msg: types.Message):
 async def process_callback_buttons(callback_query: types.CallbackQuery, state=FSMContext):
     code = callback_query.data
     if code == 'btn_week':
-        await bot.send_message(callback_query.message.chat.id, 'Статистика за неделю')
+        data = get_db().get_data_week(callback_query.from_user.id)
+        filename = create_excel_file(data, callback_query.from_user.id)
+        await bot.send_document(callback_query.message.chat.id, open(filename, 'rb'))
+
     elif code == 'btn_month':
-        await bot.send_message(callback_query.message.chat.id, 'Статистика за месяц')
+        data = get_db().get_data_month(callback_query.from_user.id)
+        filename = create_excel_file(data, callback_query.from_user.id)
+        await bot.send_document(callback_query.message.chat.id, open(filename, 'rb'))
+
     elif code == 'btn_all_time':
-        await bot.send_message(callback_query.message.chat.id, 'Статистика за все время')
+        data = get_db().get_data_all_time(callback_query.from_user.id)
+        filename = create_excel_file(data, callback_query.from_user.id)
+        await bot.send_document(callback_query.message.chat.id, open(filename, 'rb'))
 
 
 @dp.message_handler(commands=['start'])

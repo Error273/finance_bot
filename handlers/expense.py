@@ -4,9 +4,7 @@ from aiogram.dispatcher.filters import Text
 from aiogram import types, Dispatcher
 
 from buttons import *
-from db import Database
-
-db = Database('database.db')
+from db import *
 
 
 class ExpenseForm(StatesGroup):
@@ -21,16 +19,25 @@ async def add_expense(msg: types.Message):
 
 
 async def process_expense_amount(msg: types.Message, state: FSMContext):
-    # TODO: ПРОВЕРКА НА ЧИСЛО
     text = msg.text
     if text.isdigit():
         await state.update_data(amount=text)
-        await msg.answer('Теперь внесите причину расхода')
+        await msg.answer('Теперь внесите причину расхода или выберите из уже внесенных',
+                         reply_markup=get_categories_kb(get_db().get_categories(msg.from_user.id, 0)))
         await ExpenseForm.reason.set()
     else:
         await msg.reply('Вы ввели некорректное число')
         await state.reset_data()
         await state.finish()
+
+
+async def process_expense_category_selection_btn(callback_query: types.CallbackQuery, state: FSMContext):
+    code = callback_query.data
+    category = code[13:]
+    print(category)
+    await state.update_data(reason=category)
+    await callback_query.message.answer('Подтвердить внесение?', reply_markup=confirm_kb)
+    await ExpenseForm.confirm.set()
 
 
 async def process_expense_reason(msg: types.Message, state: FSMContext):
@@ -48,8 +55,8 @@ async def process_expense_confirm_btn(callback_query: types.CallbackQuery, state
         user_id = callback_query.from_user.id
         is_income = False
         amount = data['amount']
-        reason = data['reason']
-        db.add_operation(user_id, is_income, amount, reason)
+        reason = data['reason'].capitalize()
+        get_db().add_operation(user_id, is_income, amount, reason)
 
         await callback_query.answer('Успешно внесено!')
         await callback_query.message.delete_reply_markup()
@@ -66,4 +73,7 @@ def register_expense_handlers(dp: Dispatcher):
     dp.register_message_handler(add_expense, Text('Добавить расход'))
     dp.register_message_handler(process_expense_amount, state=ExpenseForm.amount)
     dp.register_message_handler(process_expense_reason, state=ExpenseForm.reason)
+    dp.register_callback_query_handler(process_expense_category_selection_btn,
+                                       lambda c: c.data and c.data.startswith('btn_category_'),
+                                       state=ExpenseForm.reason)
     dp.register_callback_query_handler(process_expense_confirm_btn, state=ExpenseForm.confirm)
