@@ -29,13 +29,13 @@ class Database:
         return self.cursor.execute(
             "SELECT date, amount, reason, is_income FROM operations WHERE user_id=(?)", (user_id,)).fetchall()
 
-    def get_categories(self, user_id, is_income):
+    def get_categories(self, user_id, is_income):  # получить 4 самых популярных категории определенного человека
         return self.cursor.execute(
             'SELECT reason FROM operations'
             ' WHERE user_id=(?) AND is_income=(?)'
             ' GROUP BY reason'
             ' ORDER BY COUNT(*) DESC,'
-            ' reason DESC LIMIT 4', (user_id, is_income, )
+            ' reason DESC LIMIT 4', (user_id, is_income,)
         ).fetchall()
 
     def get_user_ids(self):

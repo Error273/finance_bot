@@ -5,8 +5,8 @@ import datetime
 def create_excel_file(data, user_id):
     workbook = xlsxwriter.Workbook(f'{user_id}.xlsx')
     worksheet = workbook.add_worksheet()
-    format = workbook.add_format({'num_format': 'dd.mm.yy'})
-    merge_format = workbook.add_format({
+    format = workbook.add_format({'num_format': 'dd.mm.yy'})  # формат для правильного вписывания даты
+    merge_format = workbook.add_format({  # формат для объединения ячеек
         "bold": 1,
         "border": 1,
         "align": "center",
@@ -24,22 +24,23 @@ def create_excel_file(data, user_id):
 
     row1, row2 = 2, 2
     for line in data:
-
+        # если расход
         if line[-1] == 0:
-
+            # если категория еще не учитывалась, то добавляем, иначе прибавляем к имеющемуся
             if line[2] not in expense_sum:
                 expense_sum[line[2]] = line[1]
             else:
                 expense_sum[line[2]] += line[1]
             col = 0
             for element in line[:-1]:
+                # правильно вписать дату
                 if col == 0:
                     worksheet.write(row1, col, datetime.datetime.strptime(element, '%Y-%m-%d'), format)
                 else:
                     worksheet.write(row1, col, element)
                 col += 1
             row1 += 1
-        else:
+        else:  # если доход
             if line[2] not in income_sum:
                 income_sum[line[2]] = line[1]
             else:

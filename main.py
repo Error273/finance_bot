@@ -1,6 +1,5 @@
 import calendar
 import asyncio
-import datetime
 
 from aiogram import Bot, types
 from aiogram.dispatcher import Dispatcher
@@ -28,6 +27,7 @@ async def statistics(msg: types.Message):
     await msg.reply('За какой период вы хотите получить статистику?', reply_markup=choose_statistics_period_kb)
 
 
+# отслеживание кнопок для получения статистики
 @dp.callback_query_handler(lambda c: c.data and c.data.startswith('btn_'))
 async def process_callback_buttons(callback_query: types.CallbackQuery, state=FSMContext):
     code = callback_query.data
@@ -68,13 +68,13 @@ async def monthly_mailing():
                 filename = create_excel_file(data, user_id[0])
                 await bot.send_document(user_id[0], open(filename, 'rb'))
 
-        await asyncio.sleep(24*60*60)
+        await asyncio.sleep(24 * 60 * 60)
 
 
 async def daily_db_backup():
     while True:
-        print('БЭКАП БД')
-        await asyncio.sleep(24*60*60)
+        await bot.send_document(backup_channel_id, open('database.db', 'rb'))
+        await asyncio.sleep(24 * 60 * 60)
 
 
 @dp.message_handler()
