@@ -1,3 +1,7 @@
+import calendar
+import asyncio
+import datetime
+
 from aiogram import Bot, types
 from aiogram.dispatcher import Dispatcher
 from aiogram.utils import executor
@@ -54,6 +58,25 @@ expense.register_expense_handlers(dp)
 income.register_income_handlers(dp)
 
 
+async def monthly_mailing():
+    while True:
+
+        if datetime.date.today().day == calendar.monthrange(datetime.date.today().year, datetime.date.today().month)[1]:
+            for user_id in get_db().get_user_ids():
+                await bot.send_message(user_id[0], 'А вот и ваша ежемесячная статистика!')
+                data = get_db().get_data_month(user_id[0])
+                filename = create_excel_file(data, user_id[0])
+                await bot.send_document(user_id[0], open(filename, 'rb'))
+
+        await asyncio.sleep(24*60*60)
+
+
+async def daily_db_backup():
+    while True:
+        print('БЭКАП БД')
+        await asyncio.sleep(24*60*60)
+
+
 @dp.message_handler()
 async def main(msg: types.Message):
     text = msg.text
@@ -68,5 +91,10 @@ async def main(msg: types.Message):
                         reply_markup=main_kb)
 
 
+async def on_startup(x):
+    asyncio.create_task(monthly_mailing())
+    asyncio.create_task(daily_db_backup())
+
+
 if __name__ == '__main__':
-    executor.start_polling(dp)
+    executor.start_polling(dp, on_startup=on_startup)

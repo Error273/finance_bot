@@ -38,6 +38,9 @@ class Database:
             ' reason DESC LIMIT 4', (user_id, is_income, )
         ).fetchall()
 
+    def get_user_ids(self):
+        return self.cursor.execute('SELECT DISTINCT user_id FROM operations').fetchall()
+
 
 def init_db(dbfile):
     global db
